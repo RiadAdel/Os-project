@@ -7,14 +7,15 @@ import os
 
 class Client:
     id = ""
-    masterIp = "tcp://localhost:"
-    masterPortList = ["9998" , "9999"]
+    masterIp = "tcp://169.254.57.234:"
+    masterPortList = ["9998"]
     services = ["Download","Upload"]
     zmqContext = zmq.Context()
     masterSocket = zmqContext.socket(zmq.REQ)
     poller = zmq.Poller()
     poller.register(masterSocket, zmq.POLLIN)
     timeOut = 1000
+    uploadTimeout = 120000
     # constructor
     def __init__(self, clientId):
         self.id = clientId
@@ -25,10 +26,10 @@ class Client:
             except zmq.NotDone:
                 print("Request Time out, please try again")
             except zmq.ZMQError:
-                print("Not connected to server")
+                print("error connecting to server")
 
             
-            print("To do another Service, press 1")
+            print("To do another Service, Please press 1")
             name = input()
             if int(name) != 1:
                 sys.exit(1)
@@ -54,7 +55,7 @@ class Client:
         if(self.poller.poll(self.timeOut)):
             nodeKeepersData= self.masterSocket.recv_pyobj()
         else:
-            print("request time out.")
+            print("request time out, while sending ID to server")
             return
 
         if len(nodeKeepersData) == 0:
@@ -77,7 +78,7 @@ class Client:
             try:
                 f = open(name,"rb")
             except IOError:
-                print("Enter correct name")
+                print("Enter correct file name:")
                 name = input()
                 continue
             wrong = False
@@ -90,13 +91,14 @@ class Client:
         s.connect(nodeKeepersData[0]+nodeKeepersData[1])
         s.connect(nodeKeepersData[0]+nodeKeepersData[2])
         s.connect(nodeKeepersData[0]+nodeKeepersData[3])
-        s.send_pyobj((self.id,name,service))
-        x = s.recv_string()
-        print(x)
-        s.send_pyobj(data)
-        x = s.recv_string()
-        print(x)
-
+        s.send_pyobj((self.id,name,service,data))
+        if(self.poller.poll(self.uploadTimeout)):
+            s.recv_string()
+            print("File "+name+" has been uploaded successfully")
+        else:
+            print("Can't upload the file, Please try again")
+    
+    
     # downloading Mp4 File
     def download(self,fileName,nodeKeepersData):
         size = int(len(nodeKeepersData)/2)
