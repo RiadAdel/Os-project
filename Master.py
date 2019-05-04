@@ -7,9 +7,9 @@ import pymongo
 
 
 class Master:
-    myclient = None
-    mydb =None
-    mycol = None
+    myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+    mydb = myclient["mydatabase"]
+    mycol = mydb["LookUpTable"]
     ip = "tcp://localhost:"
     ClientPort , DataPort , IAmAlivePort , Replication  = ("9998" , "9999" , "9997" , "9990")
     nodesIps_Ports = [("tcp://localhost:" ,"1300","1400","1500") , ("tcp://localhost:" ,"1300","1400","1500")]
@@ -19,9 +19,7 @@ class Master:
 
 
     def __init__(self, ip = None , ClientPort = None ,DataPort=None  , IAmAlivePort=None , Replication = None ):
-        myclient = pymongo.MongoClient("mongodb://localhost:27017/")
-        mydb = myclient["mydatabase"]
-        mycol = mydb["LookUpTable"]
+        
         if ip != None:
               self.ip = ip
         if ClientPort != None:
@@ -82,9 +80,11 @@ class Master:
         print("binded to " + self.DataPort)
         while (True):
             ID , Ip , FileName = DataSocket.recv_pyobj()
+            DataSocket.send_string("")
             if (FileName !=""):
                 mydict = {"ID": ID, "IP": Ip, "FileName": FileName , "Alive":"True"}
                 x = self.mycol.insert_one(mydict)
+                print("updated the data base")
                 # then make it free
             else:
                 x = ""

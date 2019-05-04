@@ -35,33 +35,17 @@ class NodeKeeper:
       for p in self.masterPorts:
           dataSocket.connect("tcp://localhost:%s" % p)
       while True:
-          clientSocket.recv_pyobj()
+          ID , FileName , operation =clientSocket.recv_pyobj()
           print("first recieve finished")
           clientSocket.send_string("A")
           data = clientSocket.recv_pyobj()
           print("second recieve finished")
           clientSocket.send_string("A")
-          #TotalData=[]
-          #while True:
-           #   data , boolean =clientSocket.recv_pyobj()
-            #  TotalData.append(data)
-              
-             # if (boolean == 1):
-              #     clientSocket.send_pyobj((""))
-               #   break
-             # clientSocket.send_pyobj((""))
-          print(len(data))
-          count = 0
-          for p in data :
-              count+=1 
-              print(p)
-              if(count == 100): break
-          
           ff = open("shit.mp4", "wb")
           ff.write(data)
           ff.close()
-          #dataSocket.send_pyobj((ID , self.ip , FileName))
-          
+          dataSocket.send_pyobj((ID , self.ip , FileName))
+          dataSocket.recv_string()
        
     
     
