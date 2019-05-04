@@ -9,20 +9,39 @@ import time
 import threading
 import os
 
+
+
 class NodeKeeper:
+   masterPorts=["9999"]
    ip = "tcp://localhost:"
    ports = ("1300","1400","1500")
-   files = ()
    zmqContext = zmq.Context()
-
 
    def __init__(self, clientId):
       self.start()
 
+
+
+# make 
    def start(self):
       print("NodeKeeper is Ready")
       print("waiting for Service")
-      self.clientSocket.bind("tcp://*:%s" % self.port)
+      clientSocket = self.zmqContext.socket(zmq.REP)
+      for p in self.ports:
+           clientSocket.bind("tcp://*:%s" % p)
+           
+      dataSocket = self.zmqContext.socket(zmq.REP)
+      for p in self.masterPorst:
+          dataSocket.connect("tcp://*:%s" % p)
+      while True:
+          ID , FileName , operation , data   =clientSocket.recv_pyobj()
+          ff = open(FileName, "wb")
+          ff.write(data)
+          dataSocket.send_pyobj((ID , self.ip , FileName))
+       
+       
+    
+    
 
 f = open("scream.mp4", "rb")
 

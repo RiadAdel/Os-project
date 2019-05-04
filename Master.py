@@ -3,15 +3,18 @@ import sys
 import random
 import time
 import threading
+import pymongo
+
 
 class Master:
     ip = "tcp://localhost:"
-    ClientPort , DataPort , IAmAlivePort = ("9998" , "9999" , "9997")
-    nodesIps_Ports = [("tcp://localhost:" , "9991" , "9992" , "9993") , ("tcp://localhost:" , "9994" , "9995" , "9996")]
+    ClientPort , DataPort , IAmAlivePort , Replication  = ("9998" , "9999" , "9997" , "9990")
+    nodesIps_Ports = [("tcp://localhost:" ,"1300","1400","1500") , ("tcp://localhost:" ,"1300","1400","1500")]
+    nodesIps_Ports_conditinos = [("tcp://localhost:","","","") , ("tcp://localhost:","","","") ]
     zmqContext = zmq.Context()
    
 
-    def __init__(self, ip = None , ClientPort = None ,DataPort=None  , IAmAlivePort=None):
+    def __init__(self, ip = None , ClientPort = None ,DataPort=None  , IAmAlivePort=None , Replication = None ):
         if ip != None:
               self.ip = ip
         if ClientPort != None:
@@ -20,14 +23,19 @@ class Master:
             self.DataPort = DataPort
         if IAmAlivePort !=None:
             self.IAmAlivePort = IAmAlivePort 
+        if Replication !=None:
+            self.Replication = Replication
         self.start()
     
     def start(self):
+        myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+        mydb = myclient["mydatabase"]
+        mycol = mydb["LookUpTable"]
         print("Server is Ready")
         print("waiting for client")
         t = threading.Thread(target = self.ClientHandle, args = ())
         t.start()
-        t1 = threading.Thread(target = self.DataHandle, args = ())
+        t1 = threading.Thread(target = self.DataHandle, args = (mycol))
         t1.start()
         t2 = threading.Thread(target = self.AliveHandle, args = ())
         t2.start()
@@ -45,21 +53,40 @@ class Master:
             elif query[1] == "Upload":
                 index = random.randint(0, len(self.nodesIps_Ports)-1)
                 l = self.nodesIps_Ports[index]
-                print(l)
-                time.sleep(10)
-                clientSocket.send_pyobj(l)
+                portsTosend=[]
+                for idx, val in enumerate(l):
+                    if (self.nodesIps_Ports_conditinos[index][idx] == ""  or idx==0 ):
+                         portsTosend.append(self.nodesIps_Ports_conditinos[index][idx])
+              
+                print(portsTosend)
+                T = tuple(portsTosend)
+                clientSocket.send_pyobj(T)
         
         
         
         
-    def DataHandle (self):
-             x =" "
-             
+    def DataHandle (self , mycol):
+        DataSocket = self.zmqContext.socket(zmq.REP)
+        DataSocket.bind("tcp://*:%s" % self.DataPort)
+        while (True):
+            ID , Ip , FileName = DataSocket.recv_pyobj()
+            if (FileName !=""):
+                mydict = {"ID": ID, "IP": Ip, "FileName": FileName , "Alive":"True"}
+                x = mycol.insert_one(mydict)
+                # then make it free
+            else:
+                # make it free
+
 
 
 
     def AliveHandle (self):
            x =" "
+           
+           
+           
+    def ReplicationHandle (self):
+        x=" "
                 
 
 print("server starts")
