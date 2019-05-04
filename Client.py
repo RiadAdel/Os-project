@@ -16,7 +16,8 @@ class Client:
     def __init__(self, clientId):
         self.id = clientId
         try:
-            self.start()
+            while True:
+                self.start()
         except Exception as e:
             print(e)
 
@@ -32,6 +33,9 @@ class Client:
         myChoice = int(myChoice)
         self.masterSocket.send_pyobj((self.id,self.services[myChoice-1]))
         nodeKeepersData = self.masterSocket.recv_pyobj()
+        if len(nodeKeepersData) == 0:
+            print("All servers are busy, Please try later")
+            return
         fileName = input("Enter the file name:\n")
         if int(myChoice) == 2:
             self.upload(fileName,nodeKeepersData)
@@ -40,12 +44,19 @@ class Client:
 
     # uploading Mp4 File
     def upload(self,fileName,nodeKeepersData):
-        f = os.stat(fileName)
-        f = f.st_size()
+        f = open(fileName,"r")
+        data = f.read()
+
         print(f)
+        print(data)
+        print(nodeKeepersData)
+
         #s = self.zmqContext.socket(zmq.REQ)
         #s.connect(nodeKeepersData[0]+nodeKeepersData[1])
+        #s.connect(nodeKeepersData[0]+nodeKeepersData[2])
+        #s.connect(nodeKeepersData[0]+nodeKeepersData[3])
         #s.send()
+        #s.recv_string
         
 
     # downloading Mp4 File
