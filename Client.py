@@ -44,11 +44,10 @@ class Client:
 
     # uploading Mp4 File
     def upload(self,fileName,nodeKeepersData):
-        f = open(fileName,"r")
+        f = open(fileName,"rb")
         data = f.read()
 
         print(f)
-        print(data)
         print(nodeKeepersData)
 
         #s = self.zmqContext.socket(zmq.REQ)
