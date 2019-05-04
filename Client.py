@@ -12,51 +12,90 @@ class Client:
     services = ["Download","Upload"]
     zmqContext = zmq.Context()
     masterSocket = zmqContext.socket(zmq.REQ)
+    poller = zmq.Poller()
+    poller.register(masterSocket, zmq.POLLIN)
+    timeOut = 1000
     # constructor
     def __init__(self, clientId):
         self.id = clientId
-        try:
-            while True:
+        while True:
+            try:
+                print()
                 self.start()
-        except Exception as e:
-            print(e)
+            except zmq.NotDone:
+                print("Request Time out, please try again")
+            except zmq.ZMQError:
+                print("Not connected to server")
+
+            
+            print("To do another Service, press 1")
+            name = input()
+            if int(name) != 1:
+                sys.exit(1)
+            else:
+                continue
 
     # the main function of the client      
     def start(self):
-        print("Connect to Master ...")
         for port in self.masterPortList:
             self.masterSocket.connect(self.masterIp+port)
+
+        print("trying Connect to Master ...")
         myChoice = 0
         while(int(myChoice) != 1 and int(myChoice) != 2):
             myChoice = input("Choose one of the two services below:\n1. download\n2. upload\n")
 
         myChoice = int(myChoice)
+
         self.masterSocket.send_pyobj((self.id,self.services[myChoice-1]))
-        nodeKeepersData = self.masterSocket.recv_pyobj()
+
+
+        nodeKeepersData = ()
+        if(self.poller.poll(self.timeOut)):
+            nodeKeepersData= self.masterSocket.recv_pyobj()
+        else:
+            print("request time out.")
+            return
+
         if len(nodeKeepersData) == 0:
             print("All servers are busy, Please try later")
             return
         fileName = input("Enter the file name:\n")
+        
         if int(myChoice) == 2:
-            self.upload(fileName,nodeKeepersData)
+            self.upload(fileName,nodeKeepersData,self.services[myChoice-1])
         else:
             self.download(fileName,nodeKeepersData)
 
-    # uploading Mp4 File
-    def upload(self,fileName,nodeKeepersData):
-        f = open(fileName,"rb")
-        data = f.read()
 
+    # uploading Mp4 File
+    def upload(self,fileName,nodeKeepersData,service):
+        wrong = True
+        name = fileName
+        data = None
+        while wrong:
+            try:
+                f = open(name,"rb")
+            except IOError:
+                print("Enter correct name")
+                name = input()
+                continue
+            wrong = False
+            data = f.read()
+        
         print(f)
         print(nodeKeepersData)
 
-        #s = self.zmqContext.socket(zmq.REQ)
-        #s.connect(nodeKeepersData[0]+nodeKeepersData[1])
-        #s.connect(nodeKeepersData[0]+nodeKeepersData[2])
-        #s.connect(nodeKeepersData[0]+nodeKeepersData[3])
-        #s.send()
-        #s.recv_string
-        
+        s = self.zmqContext.socket(zmq.REQ)
+        s.connect(nodeKeepersData[0]+nodeKeepersData[1])
+        s.connect(nodeKeepersData[0]+nodeKeepersData[2])
+        s.connect(nodeKeepersData[0]+nodeKeepersData[3])
+        s.send_pyobj((self.id,name,service))
+        x = s.recv_string()
+        print(x)
+        s.send_pyobj(data)
+        x = s.recv_string()
+        print(x)
 
     # downloading Mp4 File
     def download(self,fileName,nodeKeepersData):
@@ -72,13 +111,11 @@ class Client:
     def downloadPiece(self,name,target,count,size):
         socket = self.zmqContext.socket(zmq.REQ)
         socket.connect(target)
-        socket.send(name+"\n"+count+"\n"+size)
+        socket.send_str(str(name)+"\n"+str(count)+"\n"+str(size))
         data = socket.recv()
     
     #stop connection when signout
     def __del__(self):
-        for port in self.masterPortList:
-            self.masterSocket.disconnect(self.masterIp+port)
+        self.zmqContext.destroy()
 
-print("Hello Guys")
 c = Client(123)

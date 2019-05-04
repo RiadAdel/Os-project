@@ -16,8 +16,9 @@ class NodeKeeper:
    ip = "tcp://localhost:"
    ports = ("1300","1400","1500")
    zmqContext = zmq.Context()
+   
 
-   def __init__(self, clientId):
+   def __init__(self):
       self.start()
 
 
@@ -30,30 +31,40 @@ class NodeKeeper:
       for p in self.ports:
            clientSocket.bind("tcp://*:%s" % p)
            
-      dataSocket = self.zmqContext.socket(zmq.REP)
-      for p in self.masterPorst:
-          dataSocket.connect("tcp://*:%s" % p)
+      dataSocket = self.zmqContext.socket(zmq.REQ)
+      for p in self.masterPorts:
+          dataSocket.connect("tcp://localhost:%s" % p)
       while True:
-          ID , FileName , operation , data   =clientSocket.recv_pyobj()
-          ff = open(FileName, "wb")
+          clientSocket.recv_pyobj()
+          print("first recieve finished")
+          clientSocket.send_string("A")
+          data = clientSocket.recv_pyobj()
+          print("second recieve finished")
+          clientSocket.send_string("A")
+          #TotalData=[]
+          #while True:
+           #   data , boolean =clientSocket.recv_pyobj()
+            #  TotalData.append(data)
+              
+             # if (boolean == 1):
+              #     clientSocket.send_pyobj((""))
+               #   break
+             # clientSocket.send_pyobj((""))
+          print(len(data))
+          count = 0
+          for p in data :
+              count+=1 
+              print(p)
+              if(count == 100): break
+          
+          ff = open("shit.mp4", "wb")
           ff.write(data)
-          dataSocket.send_pyobj((ID , self.ip , FileName))
-       
+          ff.close()
+          #dataSocket.send_pyobj((ID , self.ip , FileName))
+          
        
     
     
 
-f = open("scream.mp4", "rb")
 
-FileData=[]
-chunk = 1024
-while True:
-     data = f.read(chunk)
-     if not data:
-        break
-     FileData.append(data)
-ff = open("scream2.mp4", "wb")
-for chunks in FileData:
-    ff.write(chunks)
-ff.close()     
-
+c = NodeKeeper()
