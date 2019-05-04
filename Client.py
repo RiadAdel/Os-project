@@ -8,7 +8,7 @@ import os
 class Client:
     id = ""
     masterIp = "tcp://localhost:"
-    masterPortList = ["9998"]
+    masterPortList = ["9998" , "9999"]
     services = ["Download","Upload"]
     zmqContext = zmq.Context()
     masterSocket = zmqContext.socket(zmq.REQ)
@@ -22,7 +22,7 @@ class Client:
 
     # the main function of the client      
     def start(self):
-        print("Connect to server ...")
+        print("Connect to Master ...")
         for port in self.masterPortList:
             self.masterSocket.connect(self.masterIp+port)
         myChoice = 0

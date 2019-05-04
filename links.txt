@@ -1,0 +1,3 @@
+https://www.life2coding.com/convert-image-frames-video-file-using-opencv-python/
+https://www.geeksforgeeks.org/python-program-extract-frames-using-opencv/
+https://stackoverflow.com/questions/41253939/how-to-create-array-of-frames-from-an-mp4-with-opencv-for-python
