@@ -14,6 +14,7 @@ class Client:
     poller = zmq.Poller()
     timeOut = 1000
     uploadTimeout = 120000
+    downloadFile = []
     # constructor
     def __init__(self, clientId):
         self.id = clientId
@@ -28,13 +29,14 @@ class Client:
             
             print("To do another Service, Please press 1")
             name = input()
-            if int(name) != 1:
+            if name != "1":
                 print("Good bye")
                 break
 
 
     # the main function of the client      
     def start(self):
+        self.downloadFile = []
         masterSocket = self.zmqContext.socket(zmq.REQ)
         masterSocket.linger = 0
         self.poller.register(masterSocket, zmq.POLLIN)
@@ -56,7 +58,7 @@ class Client:
             masterSocket.close()
             return
 
-        nodeKeepersData = ()
+        nodeKeepersData = None
         if(self.poller.poll(self.timeOut)):
             nodeKeepersData= masterSocket.recv_pyobj()
         else:
@@ -74,16 +76,16 @@ class Client:
         self.poller.unregister(masterSocket)
         masterSocket.close()
         if int(myChoice) == 2:
-            self.upload(fileName,nodeKeepersData,self.services[myChoice-1])
+            self.upload(fileName,nodeKeepersData)
         else:
-            self.download(fileName,nodeKeepersData,self.services[myChoice-1])
+            self.download(fileName,nodeKeepersData)
 
 
     # uploading Mp4 File
-    def upload(self,fileName,nodeKeepersData,service):
-        wrong = True
+    def upload(self,fileName,nodeKeepersData):
+        wrong = True # for enter the file name truly
         name = fileName
-        data = None
+        data = None # The mp4 file
         while wrong:
             try:
                 f = open(name,"rb")
@@ -93,41 +95,61 @@ class Client:
                 continue
             wrong = False
             data = f.read()
-        
-        print(f)
-        print(nodeKeepersData)
+            f.close()
+            
+        print("Uploading to ip: ",nodeKeepersData[0]) 
+        for i in range(1,len(nodeKeepersData)):
+            print("at port: ",nodeKeepersData[i])
 
         s = self.zmqContext.socket(zmq.REQ)
         s.linger = 0
-        s.connect(nodeKeepersData[0]+nodeKeepersData[1])
-        s.connect(nodeKeepersData[0]+nodeKeepersData[2])
-        s.connect(nodeKeepersData[0]+nodeKeepersData[3])
-        s.send_pyobj((self.id,name,service,data))
+        self.poller.register(s,zmq.POLLIN)
+        
+        for i in range(1,len(nodeKeepersData)):
+            s.connect(nodeKeepersData[0]+nodeKeepersData[i])
+        
+        s.send_pyobj((self.id,name,"Upload",-1,data))
+
         if(self.poller.poll(self.uploadTimeout)):
             s.recv_string()
             print("File "+name+" has been uploaded successfully")
         else:
             print("Can't upload the file, Please try again")
+        
+        self.poller.unregister(s)
         s.close()
     
     
     # downloading Mp4 File
-    def download(self,fileName,nodeKeepersData,service):
+    def download(self,fileName,nodeKeepersData):
         size = int(len(nodeKeepersData)/2)
+        for i in range(0,size):
+            self.downloadFile.append()
         i = 0
         counter = 1
-        while (i < (2*size)-1):
+        threads = []
+        while (i < 2*size):
             t = threading.Thread(target = self.downloadPiece, args = (fileName,nodeKeepersData[i]+nodeKeepersData[i+1],counter,size))
+            threads.append(t)
+            i+= 2
             t.start()
-            i+=2
             counter += 1
+        
+        for t in threads:
+            t.join(uploadTimeout)
+        
+        f = open(fileName,"wb")
+        for data in self.downloadFile:
+            f.write(data)
+        f.close()
 
     def downloadPiece(self,name,target,count,size):
+        print("Hello from thread ",count)
         socket = self.zmqContext.socket(zmq.REQ)
         socket.connect(target)
-        socket.send_str(str(name)+"\n"+str(count)+"\n"+str(size))
-        data = socket.recv()
-    
+        socket.send_pyobj((self.id,name,"Download",count,size))
+        self.downloadedFile[count-1] = socket.recv()
+
     #stop connection when signout
     def __del__(self):
         x = 0

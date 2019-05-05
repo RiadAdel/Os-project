@@ -35,11 +35,8 @@ class NodeKeeper:
       for p in self.masterPorts:
           dataSocket.connect("tcp://localhost:%s" % p)
       while True:
-          ID , FileName , operation =clientSocket.recv_pyobj()
+          ID , FileName , operation , data =clientSocket.recv_pyobj()
           print("first recieve finished")
-          clientSocket.send_string("A")
-          data = clientSocket.recv_pyobj()
-          print("second recieve finished")
           clientSocket.send_string("A")
           ff = open("shit.mp4", "wb")
           ff.write(data)
