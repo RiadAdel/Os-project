@@ -12,7 +12,7 @@ class Master:
     LookUpTable = mydb["LookUpTable"]
     ip = "tcp://localhost:"
     ClientPort , DataPort , IAmAlivePort , Replication  = ("9998" , "9999" , "9899" , "9990")
-    nodesIps_Ports = [("tcp://localhost:" ,"1300","1400","1500")]
+    nodesIps_Ports = [("tcp://localhost:" ,"2301","2401","2501")]
     nodesIps_Ports_conditinos = [("tcp://localhost:" ,"","","")]
     zmqContext = zmq.Context()
 

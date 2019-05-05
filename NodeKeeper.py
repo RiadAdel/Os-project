@@ -17,13 +17,13 @@ class NodeKeeper:
   #IamAlivePorts=["9899", "9799","9699"]
    IamAlivePorts=["9899"]
    ip = "tcp://localhost:"
-   MyPorts = ["1300","1400","1500"]
+   MyPorts = ["2301","2401","2501"]
    zmqContext = zmq.Context()
    
 
    def __init__(self , port1=None , port2=None , port3=None , IP=None):
         if IP != None:
-              self.ip = IP
+            self.ip = IP
         if port1 != None:
             self.MyPorts[0] = port1
         if port2  !=None:
@@ -37,11 +37,11 @@ class NodeKeeper:
       print(self.MyPorts)
       print("NodeKeeper is Ready")
       print("waiting for Service")
-      t = threading.Thread(target = self.NodeAction, args = (self.MyPorts[0]) )
+      t = threading.Thread(target = self.NodeAction, args = (self.MyPorts[0],) )
       t.start()
-      t1 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[1]) )
+      t1 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[0],) )
       t1.start()
-      t2 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[2]) )
+      t2 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[0],) )
       t2.start()
       #t3 = threading.Thread(target = self.IamAlive, args = ())
       #t3.start()
