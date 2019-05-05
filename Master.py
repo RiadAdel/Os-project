@@ -159,15 +159,36 @@ class Master:
         AliveSocket = self.zmqContext.socket(zmq.SUB)
         for p in self.IamAlivePorts:
             AliveSocket.connect("tcp://*:%s" % p)
+        AliveSocket.setsockopt(zmq.SUBSCRIBE,topic )
         poller.register(AliveSocket , zmq.POLLIN)
         L=AliveSocket.recv_string()
-        nodesIps_Ports.append()
-        nodesIps_Ports_conditinos()
-        while True:
-            if(poller.poll(1000))
-                AliveSocket.recv_string()
-            else:
+        topic, ip , port1 , port2 , port3 = L.split()
+        PortInfo=[ip , port1 , port2 , port3]
+        self.nodesIps_Ports.append(PortInfo)
+        self.nodesIps_Ports_conditinos([ip , "" , "" , ""])
+        print("node is alive")
+        print(self.nodesIps_Ports  , self.nodesIps_Ports_conditinos)
         
+        while True:
+            if(poller.poll(1000)):
+                AliveSocket.recv_string()
+                if (PortInfo not in self.nodesIps_Ports):
+                    print("node is alive again")
+                    self.nodesIps_Ports.append(PortInfo)
+                    self.nodesIps_Ports_conditinos([ip , "" , "" , ""])
+                    print(self.nodesIps_Ports ,self.nodesIps_Ports_conditinos )
+                myquery = { "IP": ip }
+                newvalues = { "$set": { "Alive": "True" } }
+                x = self.LookUpTable.update_many(myquery, newvalues)
+            else:
+                index = self.nodesIps_Ports.index(PortInfo)
+                del self.nodesIps_Ports[index]
+                del self.nodesIps_Ports_cssssonditinos[index]
+                myquery = { "IP": ip }
+                newvalues = { "$set": { "Alive": "False" } }
+                x = self.LookUpTable.update_many(myquery, newvalues)
+                print("node is down")
+                print(self.nodesIps_Ports ,self.nodesIps_Ports_conditinos )
         
            
     def ReplicationHandle (self):

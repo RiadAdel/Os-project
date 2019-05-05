@@ -14,7 +14,7 @@ import os
 class NodeKeeper:
   #MasterPorts=["9999","9989","9979"]
    MasterPorts=["9999"]
-   topic=None
+   topic="1"
    IamAlivePort="9899"
    ip = "tcp://localhost:"
    MyPorts = ["2301","2401","2501"]
