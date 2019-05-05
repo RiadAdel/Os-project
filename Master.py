@@ -14,7 +14,7 @@ class Master:
     ClientPort , DataPort , IAmAlivePort , Replication  = ("9998" , "9999" , "9899" , "9990")
     nodesIps_Ports = [("tcp://localhost:" ,"1300","1400","1500")]
     nodesIps_Ports_conditinos = [("tcp://localhost:" ,"","","")]
-   
+    zmqContext = zmq.Context()
 
 
     def __init__(self  , ClientPort=None  ,DataPort=None , IAmAlivePort=None , Replication=None , ip = None ):

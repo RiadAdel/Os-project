@@ -34,13 +34,14 @@ class NodeKeeper:
 
 
    def start(self):
+      print(self.MyPorts)
       print("NodeKeeper is Ready")
       print("waiting for Service")
-      t = threading.Thread(target = self.NodeAction, args = (self.MyPorts[0]))
+      t = threading.Thread(target = self.NodeAction, args = (self.MyPorts[0]) )
       t.start()
-      t1 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[1]))
+      t1 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[1]) )
       t1.start()
-      t2 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[2]))
+      t2 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[2]) )
       t2.start()
       #t3 = threading.Thread(target = self.IamAlive, args = ())
       #t3.start()
@@ -48,7 +49,6 @@ class NodeKeeper:
       t1.join()
       t2.join()
       #t3.join()
-      
 
    def NodeAction(self , port):
         ClientSocket = self.zmqContext.socket(zmq.REP)
