@@ -48,10 +48,13 @@ class Client:
         while(int(myChoice) != 1 and int(myChoice) != 2):
             myChoice = input("Choose one of the two services below:\n1. download\n2. upload\n")
 
+
         myChoice = int(myChoice)
 
+        fileName = input("Enter the file name:\n")
+            
         try:
-            masterSocket.send_pyobj((self.id,self.services[myChoice-1]))
+            masterSocket.send_pyobj((self.id,self.services[myChoice-1],fileName))
         except zmq.ZMQError:
             print("error connecting to server")
             self.poller.unregister(masterSocket)
@@ -66,13 +69,13 @@ class Client:
             self.poller.unregister(masterSocket)
             masterSocket.close()
             return
+            
 
         if len(nodeKeepersData) == 0:
             print("All servers are busy, Please try later")
             self.poller.unregister(masterSocket)
             masterSocket.close()
             return
-        fileName = input("Enter the file name:\n")
         self.poller.unregister(masterSocket)
         masterSocket.close()
         if int(myChoice) == 2:
@@ -96,7 +99,7 @@ class Client:
             wrong = False
             data = f.read()
             f.close()
-            
+
         print("Uploading to ip: ",nodeKeepersData[0]) 
         for i in range(1,len(nodeKeepersData)):
             print("at port: ",nodeKeepersData[i])
