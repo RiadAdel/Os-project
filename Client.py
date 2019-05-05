@@ -14,7 +14,7 @@ class Client:
     poller = zmq.Poller()
     timeOut = 1000
     uploadTimeout = 120000
-    downloadFile = []
+    downloadedFile = []
     # constructor
     def __init__(self, clientId):
         self.id = clientId
@@ -36,7 +36,7 @@ class Client:
 
     # the main function of the client      
     def start(self):
-        self.downloadFile = []
+        self.downloadedFile = []
         masterSocket = self.zmqContext.socket(zmq.REQ)
         masterSocket.linger = 0
         self.poller.register(masterSocket, zmq.POLLIN)
@@ -54,7 +54,7 @@ class Client:
         fileName = input("Enter the file name:\n")
             
         try:
-            masterSocket.send_pyobj((self.id,self.services[myChoice-1],fileName))
+            masterSocket.send_pyobj((str(self.id),self.services[myChoice-1],fileName))
         except zmq.ZMQError:
             print("error connecting to server")
             self.poller.unregister(masterSocket)
@@ -76,6 +76,13 @@ class Client:
             self.poller.unregister(masterSocket)
             masterSocket.close()
             return
+        
+        if len(nodeKeepersData)==1:
+            print("Wrong file name :((")
+            self.poller.unregister(masterSocket)
+            masterSocket.close()
+            return
+
         self.poller.unregister(masterSocket)
         masterSocket.close()
         if int(myChoice) == 2:
@@ -111,7 +118,7 @@ class Client:
         for i in range(1,len(nodeKeepersData)):
             s.connect(nodeKeepersData[0]+nodeKeepersData[i])
         
-        s.send_pyobj((self.id,name,"Upload",-1,data))
+        s.send_pyobj((str(self.id),name,"Upload",-1,data))
 
         if(self.poller.poll(self.uploadTimeout)):
             s.recv_string()
@@ -127,7 +134,7 @@ class Client:
     def download(self,fileName,nodeKeepersData):
         size = int(len(nodeKeepersData)/2)
         for i in range(0,size):
-            self.downloadFile.append()
+            self.downloadedFile.append("")
         i = 0
         counter = 1
         threads = []
@@ -139,10 +146,10 @@ class Client:
             counter += 1
         
         for t in threads:
-            t.join(uploadTimeout)
+            t.join(self.uploadTimeout)
         
-        f = open(fileName,"wb")
-        for data in self.downloadFile:
+        f = open("down_"+fileName,"wb")
+        for data in self.downloadedFile:
             f.write(data)
         f.close()
 
@@ -150,8 +157,9 @@ class Client:
         print("Hello from thread ",count)
         socket = self.zmqContext.socket(zmq.REQ)
         socket.connect(target)
-        socket.send_pyobj((self.id,name,"Download",count,size))
-        self.downloadedFile[count-1] = socket.recv()
+        socket.send_pyobj((str(self.id),name,"Download",count,size))
+        self.downloadedFile[count-1] = socket.recv_pyobj()
+        print(type(self.downloadedFile[count-1]),len(self.downloadedFile[count-1]))
 
     #stop connection when signout
     def __del__(self):

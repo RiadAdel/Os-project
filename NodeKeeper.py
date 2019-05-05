@@ -37,11 +37,11 @@ class NodeKeeper:
       print(self.MyPorts)
       print("NodeKeeper is Ready")
       print("waiting for Service")
-      t = threading.Thread(target = self.NodeAction, args = (self.MyPorts[0]) )
+      t = threading.Thread(target = self.NodeAction, args = (self.MyPorts[0],) )
       t.start()
-      t1 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[1]) )
+      t1 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[1],) )
       t1.start()
-      t2 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[2]) )
+      t2 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[2],) )
       t2.start()
       #t3 = threading.Thread(target = self.IamAlive, args = ())
       #t3.start()
@@ -50,7 +50,7 @@ class NodeKeeper:
       t2.join()
       #t3.join()
 
-   def NodeAction(self , port):
+   def NodeAction(self,port):
         ClientSocket = self.zmqContext.socket(zmq.REP)
         ClientSocket.bind("tcp://*:%s" % port)
         MasterSocket = self.zmqContext.socket(zmq.REQ)
@@ -71,9 +71,11 @@ class NodeKeeper:
               ff = open(ID+FileName, "rb")
               Data = ff.read()
               Length = len(Data)
+              print(Length)
               FirstPart =int ( ( Length * (index-1) ) /DataOrSize )
-              SecondPart = int ( (( Length * index ) /DataOrSize ) -1)
+              SecondPart = int ( (( Length * index ) /DataOrSize ) )
               DataToSend = Data[FirstPart:SecondPart]
+              print(len(DataToSend))
               ClientSocket.send_pyobj(DataToSend)
               MasterSocket.send_pyobj((ID , self.ip , ""))
               MasterSocket.recv_string()
