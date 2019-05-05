@@ -14,14 +14,14 @@ import os
 class NodeKeeper:
   #MasterPorts=["9999","9989","9979"]
    MasterPorts=["9999"]
-  #IamAlivePorts=["9899", "9799","9699"]
-   IamAlivePorts=["9899"]
+   topic=None
+   IamAlivePort="9899"
    ip = "tcp://localhost:"
    MyPorts = ["2301","2401","2501"]
    zmqContext = zmq.Context()
    
 
-   def __init__(self , port1=None , port2=None , port3=None , IP=None):
+   def __init__(self ,Topic = None , port1=None , port2=None , port3=None ,Iamalive=None, IP=None):
         if IP != None:
             self.ip = IP
         if port1 != None:
@@ -30,6 +30,11 @@ class NodeKeeper:
             self.MyPorts[1] = port2
         if port3 !=None:
             self.MyPorts[2] = port3 
+        if Topic == None:
+            self.topic = Topic
+        if Iamalive == None:
+            self.IamAlivePort = Iamalive
+            
         self.start()
 
 
@@ -50,7 +55,7 @@ class NodeKeeper:
       t2.join()
       #t3.join()
 
-   def NodeAction(self , port):
+   def NodeAction(self,port):
         ClientSocket = self.zmqContext.socket(zmq.REP)
         ClientSocket.bind("tcp://*:%s" % port)
         MasterSocket = self.zmqContext.socket(zmq.REQ)
@@ -71,28 +76,29 @@ class NodeKeeper:
               ff = open(ID+FileName, "rb")
               Data = ff.read()
               Length = len(Data)
+              print(Length)
               FirstPart =int ( ( Length * (index-1) ) /DataOrSize )
-              SecondPart = int ( (( Length * index ) /DataOrSize ) -1)
+              SecondPart = int ( (( Length * index ) /DataOrSize ) )
               DataToSend = Data[FirstPart:SecondPart]
+              print(len(DataToSend))
               ClientSocket.send_pyobj(DataToSend)
               MasterSocket.send_pyobj((ID , self.ip , ""))
               MasterSocket.recv_string()
        
    def IamAlive(self):
-        AliveSocket = self.zmqContext.socket(zmq.REQ)
-        for p in self.IamAlivePorts:
-          AliveSocket.connect("tcp://localhwost:%s" % p)
+        AliveSocket = self.zmqContext.socket(zmq.PUB)
+        AliveSocket.bind("tcp://localhwost:%s" % self.IamAlivePort)
         while True:
-          AliveSocket.send_pyobj((self.ip , self.MyPorts[0] , self.MyPorts[1] , self.MyPorts[2] ))
+          AliveSocket.send_string(self.topic+" "+self.ip+" "+ self.MyPorts[0]+" "+self.MyPorts[1]+" "+self.MyPorts[2])
           AliveSocket.recv_string()
           time.sleep(1)
           
             
        
 
-if (len(sys.argv)==4):
-    c = NodeKeeper(sys.argv[1] ,sys.argv[2] ,sys.argv[3] ,sys.argv[4])
-elif (len(sys.argv)==5):
-    c = NodeKeeper(sys.argv[1] ,sys.argv[2] ,sys.argv[3] ,sys.argv[4] , sys.argv[5] )
+if (len(sys.argv)==6):
+    c = NodeKeeper(sys.argv[1] ,sys.argv[2] ,sys.argv[3] ,sys.argv[4],sys.argv[5])
+elif (len(sys.argv)==7):
+    c = NodeKeeper(sys.argv[1] ,sys.argv[2] ,sys.argv[3] ,sys.argv[4] , sys.argv[5]  , sys.argv[6] )
 else:
     c = NodeKeeper()

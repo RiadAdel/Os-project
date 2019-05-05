@@ -7,13 +7,15 @@ import pymongo
 
 
 class Master:
+    Topics=["1" , "2" , "3"]
+    IamAlivePorts=["9899", "9799","9699"]
     myclient = pymongo.MongoClient("mongodb://localhost:27017/")
     mydb = myclient["mydatabase"]
     LookUpTable = mydb["LookUpTable"]
     ip = "tcp://localhost:"
-    ClientPort , DataPort , IAmAlivePort , Replication  = ("9998" , "9999" , "9899" , "9990")
-    nodesIps_Ports = [("tcp://localhost:" ,"2301","2401","2501")]
-    nodesIps_Ports_conditinos = [("tcp://localhost:" ,"","","")]
+    ClientPort , DataPort , Replication  = ("9998" , "9999"  , "9990")
+    nodesIps_Ports = [["tcp://localhost:" ,"2301","2401","2501"]]
+    nodesIps_Ports_conditinos = [["tcp://localhost:" ,"","",""]]
     zmqContext = zmq.Context()
 
 
@@ -56,7 +58,7 @@ class Master:
         print("binded to " + self.ClientPort)
         while (True):
             ID , operation , FileName = clientSocket.recv_pyobj()
-            print("client with ID " + ID+ "want to" + operation)
+            print("client with ID " + str(ID) + "want to" + str(operation))
             if operation == "Download":
                 
                 myquery = { "FileName": ID+FileName ,"Alive":"True"}
@@ -80,11 +82,16 @@ class Master:
                                     
                         if(count==6): break            
                             
-                    if(count==6): break        
+                    if(count==6): break
+                if(len(ListofIps)==0):ListToSend.append("NotFound")    
+                if(len(ListToSend)>1 ): 
+                    print("made ports busy" ) 
+                    print(ListToSend) 
+                    print(self.nodesIps_Ports_conditinos)
                 TupleToSend=tuple(ListToSend)  
                 clientSocket.send_pyobj(TupleToSend)
                      
-                
+            #handle if the chosin ip is busy   
             elif operation == "Upload":
                 
                 index = random.randint(0, len(self.nodesIps_Ports)-1)
@@ -99,7 +106,9 @@ class Master:
                 portsToSendFinal.append(portsTosend[index2])
                 T = tuple(portsToSendFinal)
                 print(T)
+                print("changed port to busy")
                 self.nodesIps_Ports_conditinos[index][index2]=ID
+                print(self.nodesIps_Ports_conditinos)
                 clientSocket.send_pyobj(T)
         
     def DataHandle (self ):
@@ -108,7 +117,6 @@ class Master:
         print("binded to " + self.DataPort)
         while (True):
             ID , Ip , FileName = DataSocket.recv_pyobj()
-            DataSocket.send_string("")
             #upload
             if (FileName !=""):
                 mydict = {"ID": ID, "IP": Ip, "FileName": ID+FileName , "Alive":"True"}
@@ -121,6 +129,8 @@ class Master:
                                  self.nodesIps_Ports_conditinos[IpIndx][portIndx]=""
                                  break
                         break
+                print("freeing port in upload")
+                print(self.nodesIps_Ports_conditinos)
                 DataSocket.send_string("Done")
             #download
             else:
@@ -131,13 +141,34 @@ class Master:
                                  self.nodesIps_Ports_conditinos[IpIndx][portIndx]=""
                                  
                         break
+                print("freeing ports used in download")
+                print(self.nodesIps_Ports_conditinos)
                 DataSocket.send_string("Done")
                 
 
     def AliveHandle (self):
-        x =""
+        for t in self.Topics:
+            t = threading.Thread(target = self.AliveHandleForTopic, args = (t,))
+            t.start()
+        t.join()
+            
            
-           
+    def AliveHandleForTopic(self , topic):
+        poller = zmq.Poller()
+        
+        AliveSocket = self.zmqContext.socket(zmq.SUB)
+        for p in self.IamAlivePorts:
+            AliveSocket.connect("tcp://*:%s" % p)
+        poller.register(AliveSocket , zmq.POLLIN)
+        L=AliveSocket.recv_string()
+        nodesIps_Ports.append()
+        nodesIps_Ports_conditinos()
+        while True:
+            if(poller.poll(1000))
+                AliveSocket.recv_string()
+            else:
+        
+        
            
     def ReplicationHandle (self):
         x=" "
