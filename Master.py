@@ -10,6 +10,7 @@ class Master:
     Topics=["1" , "2" , "3"]
     IamAlivePorts=["9899", "9799","9699"]
     ReplicationPorts=["9990" , "9991" , "9992"]
+    DataNodesIp=["tcp://localhost:" , "tcp://localhost:" , "tcp://localhost:"]
     myclient = pymongo.MongoClient("mongodb://localhost:27017/")
     mydb = myclient["mydatabase"]
     LookUpTable = mydb["LookUpTable"]
@@ -155,8 +156,8 @@ class Master:
         poller = zmq.Poller()
         
         AliveSocket = self.zmqContext.socket(zmq.SUB)
-        for p in self.IamAlivePorts:
-            AliveSocket.connect("tcp://localhost:%s" % p)
+        for index ,p in enumerate(self.IamAlivePorts):
+            AliveSocket.connect(self.DataNodesIp[index]+ p)
         AliveSocket.setsockopt_string(zmq.SUBSCRIBE,topic)
         poller.register(AliveSocket , zmq.POLLIN)
         L=AliveSocket.recv_string()
@@ -197,8 +198,8 @@ class Master:
            
     def ReplicationHandle (self):
         ReplicationSocket = self.zmqContext.socket(zmq.REQ)
-        for p in self.ReplicationPorts:
-            ReplicationSocket.connect("tcp://localhost:%s" % p)
+        for index, p in enumerate(self.ReplicationPorts):
+            ReplicationSocket.connect(self.DataNodesIp[index]+p)
         while True:
             AllData=list(self.LookUpTable.find())
             FileNamesToReplicate=[]
@@ -237,6 +238,7 @@ class Master:
                                portList.append(p[i])
                                portsToFree.append( (indx2 , i))
                                count+=1
+                               break
                             if(count == (3-InfoOfFileNames[indx][1])):break   
                     if(count == (3-InfoOfFileNames[indx][1])):break               
                 #start replication

@@ -13,6 +13,7 @@ import os
 
 class NodeKeeper:
   #MasterPorts=["9999","9989","9979"]
+   MasterIps = ["tcp://localhost:"]
    MasterPorts=["9999"]
    topic="1"
    IamAlivePort="9899"
@@ -65,8 +66,8 @@ class NodeKeeper:
         ClientSocket = self.zmqContext.socket(zmq.REP)
         ClientSocket.bind("tcp://*:%s" % port)
         MasterSocket = self.zmqContext.socket(zmq.REQ)
-        for p in self.MasterPorts:
-          MasterSocket.connect("tcp://localhost:%s" % p)
+        for Index,p in enumerate(self.MasterPorts):
+          MasterSocket.connect(self.MasterIps[Index]+p)
         while True:
           ID , FileName , operation, index , DataOrSize =ClientSocket.recv_pyobj()
           print("operation is " + operation)
