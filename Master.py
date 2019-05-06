@@ -9,17 +9,18 @@ import pymongo
 class Master:
     Topics=["1" , "2" , "3"]
     IamAlivePorts=["9899", "9799","9699"]
+    ReplicationPorts=["9990" , "9991" , "9992"]
     myclient = pymongo.MongoClient("mongodb://localhost:27017/")
     mydb = myclient["mydatabase"]
     LookUpTable = mydb["LookUpTable"]
     ip = "tcp://localhost:"
-    ClientPort , DataPort , Replication  = ("9998" , "9999"  , "9990")
+    ClientPort , DataPort   = ("9998" , "9999")
     nodesIps_Ports = []
     nodesIps_Ports_conditinos = []
     zmqContext = zmq.Context()
 
 
-    def __init__(self  , ClientPort=None  ,DataPort=None , IAmAlivePort=None , Replication=None , ip = None ):
+    def __init__(self  , ClientPort=None  ,DataPort=None , ip = None ):
         
         if ip != None:
               self.ip = ip
@@ -27,10 +28,6 @@ class Master:
             self.ClientPort = ClientPort
         if DataPort  !=None:
             self.DataPort = DataPort
-        if IAmAlivePort !=None:
-            self.IAmAlivePort = IAmAlivePort 
-        if Replication !=None:
-            self.Replication = Replication
         self.start()
     
     
@@ -45,11 +42,12 @@ class Master:
         t1.start()
         t2 = threading.Thread(target = self.AliveHandle, args = ())
         t2.start()
-        
+        t3 = threading.Thread(target = self.ReplicationHandle, args = ())
+        t3.start()
         t1.join()
         t2.join()
         t.join()
-        
+        t3.join()
     
                  
     def ClientHandle (self):
@@ -198,13 +196,68 @@ class Master:
         
            
     def ReplicationHandle (self):
-        x=" "
+        ReplicationSocket = self.zmqContext.socket(zmq.REQ)
+        for p in self.ReplicationPorts:
+            ReplicationSocket.connect("tcp://localhost:%s" % p)
+        while True:
+            AllData=list(self.LookUpTable.find())
+            FileNamesToReplicate=[]
+            InfoOfFileNames=[]
+            for doc in AllData:
+                if (doc["Alive"]== "True"):
+                    if (doc["FileName"] not in FileNamesToReplicate):
+                        FileNamesToReplicate.append(doc["FileName"])
+                        InfoOfFileNames.append( [[doc["IP"]] , 1 ,doc["ID"] ] )
+                    else:
+                        Index = FileNamesToReplicate.index(doc["FileName"])
+                        InfoOfFileNames[Index][1]+=1
+                        InfoOfFileNames[Index][0].append(doc["IP"])
+            count = 0
+            #filter Files in more than or equal to 3 nodes
+            while (count<len(FileNamesToReplicate)):
+                if(InfoOfFileNames[count][1]>=3):
+                    del InfoOfFileNames[count]
+                    del FileNamesToReplicate[count]
+                else:
+                    count+=1
+            
+            # to replicate to     FileName , Data , ID , IpList , PortList
+            
+            for indx , F in enumerate(FileNamesToReplicate):
+                ipList=[]
+                portList=[]
+                portsToFree=[]
+                count = 0
+                for  indx2 , p in enumerate(self.nodesIps_Ports):
+                    if (p[0] not in InfoOfFileNames[indx][0]):
+                        for i in range(1 , 4):
+                            if(self.nodesIps_Ports_conditinos[indx2][i]=="" ):
+                               self.nodesIps_Ports_conditinos[indx2][i]== InfoOfFileNames[indx][2]+"REP"
+                               ipList.append(p[0])
+                               portList.append(p[i])
+                               portsToFree.append( (indx2 , i))
+                               count+=1
+                            if(count == (3-InfoOfFileNames[indx][1])):break   
+                    if(count == (3-InfoOfFileNames[indx][1])):break               
+                #start replication
+                # if he is sad but , after portlist
+                ReplicationSocket.send_pyobj((F , "" , InfoOfFileNames[indx][2] ,ipList ,portList ) )
+                ReplicationSocket.recv_string()
+                for ele in portsToFree:
+                    self.nodesIps_Ports_conditinos[ele[0]][ele[1]]=""
+                    
+                
+                
+                    
+                    
+                    
+        
                 
 print("master starts")
-if (len(sys.argv)==4):
-    m = Master(sys.argv[1] ,sys.argv[2] ,sys.argv[3] ,sys.argv[4])
-elif (len(sys.argv)-1 ==5):
-    m = Master(sys.argv[1] ,sys.argv[2] ,sys.argv[3] ,sys.argv[4] , sys.argv[5])
+if (len(sys.argv)==3):
+    m = Master(sys.argv[1] ,sys.argv[2] )
+elif (len(sys.argv) ==4):
+    m = Master(sys.argv[1] ,sys.argv[2] ,sys.argv[3])
 else:
     m = Master()
    

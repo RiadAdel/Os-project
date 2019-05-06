@@ -44,6 +44,10 @@ mydict[7] = {"ID": ID, "IP": Ip, "FileName": ID+FileName}
 mydict[8] = {"ID": ID, "IP": Ip, "FileName": ID+FileName}
 mydict[9] = {"ID": ID, "IP": Ip, "FileName": ID+FileName}
 
+for p in mydict:
+    for key , value in p.items():
+        print(key , value)
+        break
+    break
 
-x = self.LookUpTable.insert_one(mydict)
 #LookUpTable.drop()
