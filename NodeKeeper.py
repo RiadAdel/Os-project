@@ -17,7 +17,7 @@ class NodeKeeper:
    topic="1"
    IamAlivePort="9899"
    ip = "tcp://localhost:"
-   MyPorts = ["2301","2401","2501"]
+   MyPorts = ["23041","24041","25041"]
    zmqContext = zmq.Context()
    
 
@@ -30,9 +30,9 @@ class NodeKeeper:
             self.MyPorts[1] = port2
         if port3 !=None:
             self.MyPorts[2] = port3 
-        if Topic == None:
+        if Topic != None:
             self.topic = Topic
-        if Iamalive == None:
+        if Iamalive != None:
             self.IamAlivePort = Iamalive
             
         self.start()
@@ -44,16 +44,16 @@ class NodeKeeper:
       print("waiting for Service")
       t = threading.Thread(target = self.NodeAction, args = (self.MyPorts[0],) )
       t.start()
-      t1 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[0],) )
+      t1 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[1],) )
       t1.start()
-      t2 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[0],) )
+      t2 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[2],) )
       t2.start()
-      #t3 = threading.Thread(target = self.IamAlive, args = ())
-      #t3.start()
+      t3 = threading.Thread(target = self.IamAlive, args = ())
+      t3.start()
       t.join()
       t1.join()
       t2.join()
-      #t3.join()
+      t3.join()
 
    def NodeAction(self,port):
         ClientSocket = self.zmqContext.socket(zmq.REP)
@@ -87,10 +87,9 @@ class NodeKeeper:
        
    def IamAlive(self):
         AliveSocket = self.zmqContext.socket(zmq.PUB)
-        AliveSocket.bind("tcp://localhwost:%s" % self.IamAlivePort)
+        AliveSocket.bind("tcp://*:%s" % self.IamAlivePort)
         while True:
           AliveSocket.send_string(self.topic+" "+self.ip+" "+ self.MyPorts[0]+" "+self.MyPorts[1]+" "+self.MyPorts[2])
-          AliveSocket.recv_string()
           time.sleep(1)
           
             

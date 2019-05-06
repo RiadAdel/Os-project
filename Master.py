@@ -14,8 +14,8 @@ class Master:
     LookUpTable = mydb["LookUpTable"]
     ip = "tcp://localhost:"
     ClientPort , DataPort , Replication  = ("9998" , "9999"  , "9990")
-    nodesIps_Ports = [["tcp://localhost:" ,"2301","2401","2501"]]
-    nodesIps_Ports_conditinos = [["tcp://localhost:" ,"","",""]]
+    nodesIps_Ports = []
+    nodesIps_Ports_conditinos = []
     zmqContext = zmq.Context()
 
 
@@ -43,11 +43,11 @@ class Master:
         t.start()
         t1 = threading.Thread(target = self.DataHandle, args = ())
         t1.start()
-        #t2 = threading.Thread(target = self.AliveHandle, args = ())
-        #t2.start()
+        t2 = threading.Thread(target = self.AliveHandle, args = ())
+        t2.start()
         
         t1.join()
-        #t2.join()
+        t2.join()
         t.join()
         
     
@@ -158,35 +158,41 @@ class Master:
         
         AliveSocket = self.zmqContext.socket(zmq.SUB)
         for p in self.IamAlivePorts:
-            AliveSocket.connect("tcp://*:%s" % p)
-        AliveSocket.setsockopt(zmq.SUBSCRIBE,topic )
+            AliveSocket.connect("tcp://localhost:%s" % p)
+        AliveSocket.setsockopt_string(zmq.SUBSCRIBE,topic)
         poller.register(AliveSocket , zmq.POLLIN)
         L=AliveSocket.recv_string()
         topic, ip , port1 , port2 , port3 = L.split()
         PortInfo=[ip , port1 , port2 , port3]
         self.nodesIps_Ports.append(PortInfo)
-        self.nodesIps_Ports_conditinos([ip , "" , "" , ""])
+        self.nodesIps_Ports_conditinos.append([ip , "" , "" , ""])
         print("node is alive")
         print(self.nodesIps_Ports  , self.nodesIps_Ports_conditinos)
-        
+        DontAcessDB = False
         while True:
-            if(poller.poll(1000)):
+            if(poller.poll(1500)):
+                if(DontAcessDB==True):
+                    myquery = { "IP": ip }
+                    newvalues = { "$set": { "Alive": "True" } }
+                    x = self.LookUpTable.update_many(myquery, newvalues)
                 AliveSocket.recv_string()
                 if (PortInfo not in self.nodesIps_Ports):
                     print("node is alive again")
                     self.nodesIps_Ports.append(PortInfo)
-                    self.nodesIps_Ports_conditinos([ip , "" , "" , ""])
+                    self.nodesIps_Ports_conditinos.append([ip , "" , "" , ""])
                     print(self.nodesIps_Ports ,self.nodesIps_Ports_conditinos )
-                myquery = { "IP": ip }
-                newvalues = { "$set": { "Alive": "True" } }
-                x = self.LookUpTable.update_many(myquery, newvalues)
+                
+                DontAcessDB=False
             else:
-                index = self.nodesIps_Ports.index(PortInfo)
-                del self.nodesIps_Ports[index]
-                del self.nodesIps_Ports_cssssonditinos[index]
-                myquery = { "IP": ip }
-                newvalues = { "$set": { "Alive": "False" } }
-                x = self.LookUpTable.update_many(myquery, newvalues)
+                if(DontAcessDB==False):
+                    myquery = { "IP": ip }
+                    newvalues = { "$set": { "Alive": "False" } }
+                    x = self.LookUpTable.update_many(myquery, newvalues)
+                if(PortInfo  in self.nodesIps_Ports ):
+                    DontAcessDB = True
+                    index = self.nodesIps_Ports.index(PortInfo)
+                    del self.nodesIps_Ports[index]
+                    del self.nodesIps_Ports_conditinos[index]
                 print("node is down")
                 print(self.nodesIps_Ports ,self.nodesIps_Ports_conditinos )
         
