@@ -6,15 +6,16 @@ import zmq
 import sys
 import random
 import time
-import threading
+#import threading
+import multiprocessing as threading
 import os
 
 
-
 class NodeKeeper:
-  #MasterPorts=["9999","9989","9979"]
-   MasterIps = ["tcp://localhost:"]
-   MasterPorts=["9999"]
+   MasterPorts=["9999","9989","9979"]
+   MasterIps = ["tcp://localhost:" ,"tcp://localhost:" ,"tcp://localhost:" ]
+   #MasterIps = ["tcp://localhost:"]
+   #MasterPorts=["9999"]
    topic="1"
    IamAlivePort="9899"
    ReplicationPort= "9990"
@@ -46,22 +47,23 @@ class NodeKeeper:
       print(self.MyPorts)
       print("NodeKeeper is Ready")
       print("waiting for Service")
-      t = threading.Thread(target = self.NodeAction, args = (self.MyPorts[0],) )
+      # change Thread to Process or vice verse
+      t = threading.Process(target = self.NodeAction, args = (self.MyPorts[0],) )
       t.start()
-      t1 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[1],) )
+      t1 = threading.Process(target = self.NodeAction, args = (self.MyPorts[1],) )
       t1.start()
-      t2 = threading.Thread(target = self.NodeAction, args = (self.MyPorts[2],) )
+      t2 = threading.Process(target = self.NodeAction, args = (self.MyPorts[2],) )
       t2.start()
-      t3 = threading.Thread(target = self.IamAlive, args = ())
+      t3 = threading.Process(target = self.IamAlive, args = ())
       t3.start()
-      t4 = threading.Thread(target = self.Replication, args = ())
-      t4.start()
+      #t4 = threading.Process(target = self.Replication, args = ())
+      #t4.start()
       
       t.join()
       t1.join()
       t2.join()
       t3.join()
-      t4.join()
+      #t4.join()
    def NodeAction(self,port):
         ClientSocket = self.zmqContext.socket(zmq.REP)
         ClientSocket.bind("tcp://*:%s" % port)
@@ -126,16 +128,11 @@ class NodeKeeper:
            
            
            
-           
-           
-       
-       
-                 
-       
+if __name__ == '__main__':          
 
-if (len(sys.argv)==7):
-    c = NodeKeeper(sys.argv[1] ,sys.argv[2] ,sys.argv[3] ,sys.argv[4],sys.argv[5],sys.argv[6])
-elif (len(sys.argv)==8):
-    c = NodeKeeper(sys.argv[1] ,sys.argv[2] ,sys.argv[3] ,sys.argv[4] , sys.argv[5]  , sys.argv[6], sys.argv[7] )
-else:
-    c = NodeKeeper()
+    if (len(sys.argv)==7):
+        c = NodeKeeper(sys.argv[1] ,sys.argv[2] ,sys.argv[3] ,sys.argv[4],sys.argv[5],sys.argv[6])
+    elif (len(sys.argv)==8):
+        c = NodeKeeper(sys.argv[1] ,sys.argv[2] ,sys.argv[3] ,sys.argv[4] , sys.argv[5]  , sys.argv[6], sys.argv[7] )
+    else:
+        c = NodeKeeper()
